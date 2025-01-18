@@ -16,7 +16,6 @@ x_clusters, y_clusters = make_blobs(
     random_state=1
 )
 
-
 x_noise = np.random.normal(loc=0, scale=10, size=(300, features)) # 300 instances of noise
 y_noise = np.random.choice([0, 1, 2], size=300, p=[0.4, 0.3, 0.3]) # noise assigned to random class (40% probability of class 0, 30% probability of class 1, 30% probability of class 2)
 

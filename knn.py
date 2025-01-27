@@ -3,9 +3,14 @@ import pandas as pd
 train = pd.read_csv('train.csv')
 test = pd.read_csv('test.csv')
 
-attributes = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+# get attributes, excluding class
+attributes = list(train.columns)
+attributes.remove('class')
+
+classvals = list(train['class'].unique())
 
 K = 5
+R = 30 # for local density
 
 def euclidean(instance1, instance2):
     squared_distance = 0
@@ -34,13 +39,12 @@ for index, instance in train.iterrows():
     distances.sort()
     train_train_distances[str(instance)] = distances
 print("Precalculations complete.")
-# # REGULAR KNN
+# REGULAR KNN
 totals = 0
 corrects = 0
 for index, instance in test.iterrows():
     distances = test_train_distances[index]
-    class_counts = [0, 0, 0]
-    classvals = [0, 1, 2]
+    class_counts = [0] * len(classvals)
     for a in range(K):
         class_counts[classvals.index(distances[a][1])] += 1
     classified_class = classvals[class_counts.index(max(class_counts))]
@@ -49,16 +53,15 @@ for index, instance in test.iterrows():
         corrects += 1
 print("Accuracy: " + str(round(100*(corrects / totals),2)) + "%")
 
-# # WEIGHTED AVERAGING KNN - weight is 1/frequency of class of neighbor
+# WEIGHTED AVERAGING KNN - weight is 1/frequency of class of neighbor
 totals = 0
 corrects = 0
-class_frequencies = [0, 0, 0]
-classvals = [0, 1, 2]
+class_frequencies = [0] * len(classvals)
 for i, train_instance in train.iterrows():
     class_frequencies[classvals.index(train_instance['class'])] += 1
 for index, instance in test.iterrows():
     distances = test_train_distances[index]
-    class_counts = [0, 0, 0]
+    class_counts = [0] * len(classvals)
     for a in range(K):
         class_counts[classvals.index(distances[a][1])] += 1 / class_frequencies[classvals.index(distances[a][1])]
     classified_class = classvals[class_counts.index(max(class_counts))]
@@ -67,13 +70,12 @@ for index, instance in test.iterrows():
         corrects += 1
 print("Accuracy: " + str(round(100*(corrects / totals),2)) + "%")
 
-# # WEIGHTED DISTANCING KNN - weight is 1/distance to neighbor
+# WEIGHTED DISTANCING KNN - weight is 1/distance to neighbor
 totals = 0
 corrects = 0
 for index, instance in test.iterrows():
     distances = test_train_distances[index]
-    class_counts = [0, 0, 0]
-    classvals = [0, 1, 2]
+    class_counts = [0] * len(classvals)
 
     for a in range(K):
         class_counts[classvals.index(distances[a][1])] += 1 / distances[a][0]
@@ -83,22 +85,20 @@ for index, instance in test.iterrows():
         corrects += 1
 print("Accuracy: " + str(round(100*(corrects / totals),2)) + "%")
 
-# # LOCAL DENSITY WEIGHTING KNN - local density is number of points within distance of r - neighbors in denser regions are weighted more
-# # final weight for neighbor is normalized based on total density of all k-nearest neighbors
-r = 30
+# LOCAL DENSITY WEIGHTING KNN - local density is number of points within distance of r - neighbors in denser regions are weighted more
+# final weight for neighbor is normalized based on total density of all k-nearest neighbors
 totals = 0
 corrects = 0
 for index, instance in test.iterrows():
     distances = test_train_distances[index]
-    class_counts = [0, 0, 0]
-    classvals = [0, 1, 2]
+    class_counts = [0] * len(classvals)
     for a in range(K):
         neighbor = distances[a][2]
         neighbor_class = distances[a][1]
         local_density = 0
         neighbors_dists = train_train_distances[str(neighbor)]
         for b in range(len(neighbors_dists)):
-            if neighbors_dists[b][0] <= r:
+            if neighbors_dists[b][0] <= R:
                 local_density += 1
             else:
                 break
@@ -109,4 +109,44 @@ for index, instance in test.iterrows():
         corrects += 1
 print("Accuracy: " + str(round(100*(corrects / totals),2)) + "%")
 
-# ALL METHODS COMBINED KNN
+# ALL METHODS COMBINED KNN 
+totals = 0
+corrects = 0
+for index, instance in test.iterrows():
+    distances = test_train_distances[index]
+    class_counts = [0] * len(classvals)
+    all_weights = []
+    for a in range(K):
+        neighbor = distances[a][2]
+        neighbor_class = distances[a][1]
+        weights = []
+        # weighted average (1/frequency)
+        weights.append(1 / class_frequencies[classvals.index(neighbor_class)])
+        # weighted distance (1/distance)
+        weights.append(1 / distances[a][0])
+        # local density
+        local_density = 0
+        neighbors_dists = train_train_distances[str(neighbor)]
+        for b in range(len(neighbors_dists)):
+            if neighbors_dists[b][0] <= R:
+                local_density += 1
+            else:
+                break
+        weights.append(local_density)
+        all_weights.append(weights)
+    # normalize weights before classifying
+    for i in range(3):
+        max_weight = max(weights[i] for weights in all_weights)
+        min_weight = min(weights[i] for weights in all_weights)
+        for a in range(K):
+            all_weights[a][i] = (all_weights[a][i] - min_weight) / (max_weight - min_weight + 0.000000001) # small number to prevent division by 0
+    # use normalized weights
+    for a in range(K):
+        neighbor_class = distances[a][1]
+        total_weight = sum(all_weights[a])
+        class_counts[classvals.index(neighbor_class)] += total_weight
+    classified_class = classvals[class_counts.index(max(class_counts))]
+    totals += 1
+    if classified_class == instance['class']:
+        corrects += 1
+print("Accuracy: " + str(round(100*(corrects / totals),2)) + "%")

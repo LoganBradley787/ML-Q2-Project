@@ -1,6 +1,6 @@
 import pandas as pd
 
-train = pd.read_csv('train.csv')
+train = pd.read_csv('train_smote.csv')
 test = pd.read_csv('test.csv')
 
 # get attributes, excluding class
@@ -42,6 +42,9 @@ print("Precalculations complete.")
 # REGULAR KNN
 totals = 0
 corrects = 0
+confusion_matrix = []
+for i in range(len(classvals)):
+    confusion_matrix.append([0] * len(classvals))
 for index, instance in test.iterrows():
     distances = test_train_distances[index]
     class_counts = [0] * len(classvals)
@@ -51,11 +54,25 @@ for index, instance in test.iterrows():
     totals += 1
     if classified_class == instance['class']:
         corrects += 1
-print("Accuracy: " + str(round(100*(corrects / totals),2)) + "%")
+    confusion_matrix[classvals.index(instance['class'])][classvals.index(classified_class)] += 1
+print("Regular KNN Accuracy: " + str(round(100*(corrects / totals),2)) + "%")
+print("Confusion Matrix:")
+# format:
+#               Predicted <class>, Predicted <class>, Predicted <class>
+# Actual <class>
+# Actual <class>
+# Actual <class>
+print("Predicted -" + str(classvals))
+for i in range(len(classvals)):
+    print("Actual " + str(classvals[i]) + "-" + str(confusion_matrix[i]))
+
 
 # WEIGHTED AVERAGING KNN - weight is 1/frequency of class of neighbor
 totals = 0
 corrects = 0
+confusion_matrix = []
+for i in range(len(classvals)):
+    confusion_matrix.append([0] * len(classvals))
 class_frequencies = [0] * len(classvals)
 for i, train_instance in train.iterrows():
     class_frequencies[classvals.index(train_instance['class'])] += 1
@@ -68,11 +85,18 @@ for index, instance in test.iterrows():
     totals += 1
     if classified_class == instance['class']:
         corrects += 1
-print("Accuracy: " + str(round(100*(corrects / totals),2)) + "%")
-
+    confusion_matrix[classvals.index(instance['class'])][classvals.index(classified_class)] += 1
+print("Weighted Averaging KNN Accuracy: " + str(round(100*(corrects / totals),2)) + "%")
+print("Confusion Matrix:")
+print("Predicted -" + str(classvals))
+for i in range(len(classvals)):
+    print("Actual " + str(classvals[i]) + "-" + str(confusion_matrix[i]))
 # WEIGHTED DISTANCING KNN - weight is 1/distance to neighbor
 totals = 0
 corrects = 0
+confusion_matrix = []
+for i in range(len(classvals)):
+    confusion_matrix.append([0] * len(classvals))
 for index, instance in test.iterrows():
     distances = test_train_distances[index]
     class_counts = [0] * len(classvals)
@@ -83,12 +107,19 @@ for index, instance in test.iterrows():
     totals += 1
     if classified_class == instance['class']:
         corrects += 1
-print("Accuracy: " + str(round(100*(corrects / totals),2)) + "%")
-
+    confusion_matrix[classvals.index(instance['class'])][classvals.index(classified_class)] += 1
+print("Weighted Distancing KNN Accuracy: " + str(round(100*(corrects / totals),2)) + "%")
+print("Confusion Matrix:")
+print("Predicted -" + str(classvals))
+for i in range(len(classvals)):
+    print("Actual " + str(classvals[i]) + "-" + str(confusion_matrix[i]))
 # LOCAL DENSITY WEIGHTING KNN - local density is number of points within distance of r - neighbors in denser regions are weighted more
 # final weight for neighbor is normalized based on total density of all k-nearest neighbors
 totals = 0
 corrects = 0
+confusion_matrix = []
+for i in range(len(classvals)):
+    confusion_matrix.append([0] * len(classvals))
 for index, instance in test.iterrows():
     distances = test_train_distances[index]
     class_counts = [0] * len(classvals)
@@ -107,11 +138,19 @@ for index, instance in test.iterrows():
     totals += 1
     if classified_class == instance['class']:
         corrects += 1
-print("Accuracy: " + str(round(100*(corrects / totals),2)) + "%")
+    confusion_matrix[classvals.index(instance['class'])][classvals.index(classified_class)] += 1
+print("Local Density Weighting KNN Accuracy: " + str(round(100*(corrects / totals),2)) + "%")
+print("Confusion Matrix:")
+print("Predicted -" + str(classvals))
+for i in range(len(classvals)):
+    print("Actual " + str(classvals[i]) + "-" + str(confusion_matrix[i]))
 
 # ALL METHODS COMBINED KNN 
 totals = 0
 corrects = 0
+confusion_matrix = []
+for i in range(len(classvals)):
+    confusion_matrix.append([0] * len(classvals))
 for index, instance in test.iterrows():
     distances = test_train_distances[index]
     class_counts = [0] * len(classvals)
@@ -149,4 +188,9 @@ for index, instance in test.iterrows():
     totals += 1
     if classified_class == instance['class']:
         corrects += 1
-print("Accuracy: " + str(round(100*(corrects / totals),2)) + "%")
+    confusion_matrix[classvals.index(instance['class'])][classvals.index(classified_class)] += 1
+print("All Methods Combined KNN Accuracy: " + str(round(100*(corrects / totals),2)) + "%")
+print("Confusion Matrix:")
+print("Predicted -" + str(classvals))
+for i in range(len(classvals)):
+    print("Actual " + str(classvals[i]) + "-" + str(confusion_matrix[i]))
